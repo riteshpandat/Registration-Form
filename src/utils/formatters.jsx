@@ -18,7 +18,6 @@ const App = () => {
     skills: []
   });
 
-
   const validateEmail = (email) => {
     const re = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     return re.test(email);
@@ -71,30 +70,24 @@ const App = () => {
     return Object.keys(newErrors).length === 0;
   };
 
+  const handleBlur = (name) => {
+    setTouched(prev => ({ ...prev, [name]: true }));
+    const error = validateField(name, formData[name]);
+    setErrors(prev => ({ ...prev, [name]: error }));
+  };
+
   const handleInputChange = (e) => {
-    setFormData(prev => ({
-      ...prev,
-      [e.target.name]: e.target.value
-    }));
+    const { name, value } = e.target;
+    setFormData(prev => ({ ...prev, [name]: value }));
+    
+    if (touched[name]) {
+      const error = validateField(name, value);
+      setErrors(prev => ({ ...prev, [name]: error }));
+    }
   };
 
   const handleNext = () => {
-
-    if(currentScreen === 1 ){
-      if(!formData.name || !formData.email || !formData.contactNumber || !formData.gender){
-        window.alert("all field are require")
-        return
-      }
-    }
-    if(currentScreen === 2 ){
-      if(!formData.college || !formData.passingYear || !formData.collegeCity){
-        window.alert("all field are require")
-        return
-      }
-    }
-    
-
-    if (currentScreen < 3) {
+    if (validateScreen(currentScreen)) {
       setCurrentScreen(prev => prev + 1);
     }
   };
@@ -106,14 +99,10 @@ const App = () => {
   };
 
   const handleSubmit = (e) => {
-
-    if(!formData.bio || !formData.skills ){
-      window.alert("all field are require")
-      return
-    }
-
     e.preventDefault();
-    setIsSubmitted(true);
+    if (validateScreen(currentScreen)) {
+      setIsSubmitted(true);
+    }
   };
 
   const handleSkillSelect = (skill) => {
@@ -135,7 +124,58 @@ const App = () => {
   const handleEdit = () => {
     setIsSubmitted(false);
     setCurrentScreen(1);
+    setErrors({});
+    setTouched({});
   };
+
+  const FormField = ({ label, name, type = 'text', value, onChange, onBlur, error, touched, ...props }) => (
+    <div className="space-y-1">
+      <label className="block text-sm font-medium text-gray-700">
+        {label}
+        {props.required && <span className="text-red-500 ml-1">*</span>}
+      </label>
+      {type === 'textarea' ? (
+        <textarea
+          name={name}
+          value={value}
+          onChange={onChange}
+          onBlur={() => onBlur(name)}
+          className={`w-full p-2 border rounded focus:ring-2 focus:ring-blue-500 ${
+            touched && error ? 'border-red-500' : 'border-gray-300'
+          }`}
+          {...props}
+        />
+      ) : type === 'select' ? (
+        <select
+          name={name}
+          value={value}
+          onChange={onChange}
+          onBlur={() => onBlur(name)}
+          className={`w-full p-2 border rounded focus:ring-2 focus:ring-blue-500 ${
+            touched && error ? 'border-red-500' : 'border-gray-300'
+          }`}
+          {...props}
+        >
+          {props.children}
+        </select>
+      ) : (
+        <input
+          type={type}
+          name={name}
+          value={value}
+          onChange={onChange}
+          onBlur={() => onBlur(name)}
+          className={`w-full p-2 border rounded focus:ring-2 focus:ring-blue-500 ${
+            touched && error ? 'border-red-500' : 'border-gray-300'
+          }`}
+          {...props}
+        />
+      )}
+      {touched && error && (
+        <p className="text-red-500 text-sm mt-1">{error}</p>
+      )}
+    </div>
+  );
 
   if (isSubmitted) {
     return (
@@ -255,41 +295,45 @@ const App = () => {
         <form onSubmit={handleSubmit} className="space-y-6">
           {currentScreen === 1 && (
             <div className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium mb-1">Name</label>
-                <input
-                  type="text"
-                  name="name"
-                  value={formData.name}
-                  onChange={handleInputChange}
-                  className="w-full p-2 border rounded focus:ring-2 focus:ring-blue-500"
-                  required
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium mb-1">Email</label>
-                <input
-                  type="email"
-                  name="email"
-                  value={formData.email}
-                  onChange={handleInputChange}
-                  className="w-full p-2 border rounded focus:ring-2 focus:ring-blue-500"
-                  required
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium mb-1">Contact Number</label>
-                <input
-                  type="tel"
-                  name="contactNumber"
-                  value={formData.contactNumber}
-                  onChange={handleInputChange}
-                  className="w-full p-2 border rounded focus:ring-2 focus:ring-blue-500"
-                  required
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium mb-1">Gender</label>
+              <FormField
+                label="Name"
+                name="name"
+                value={formData.name}
+                onChange={handleInputChange}
+                onBlur={handleBlur}
+                error={errors.name}
+                touched={touched.name}
+                required
+                placeholder="Enter your full name"
+              />
+              <FormField
+                label="Email"
+                name="email"
+                type="email"
+                value={formData.email}
+                onChange={handleInputChange}
+                onBlur={handleBlur}
+                error={errors.email}
+                touched={touched.email}
+                required
+                placeholder="Enter your email address"
+              />
+              <FormField
+                label="Contact Number"
+                name="contactNumber"
+                type="tel"
+                value={formData.contactNumber}
+                onChange={handleInputChange}
+                onBlur={handleBlur}
+                error={errors.contactNumber}
+                touched={touched.contactNumber}
+                required
+                placeholder="Enter 10-digit number"
+              />
+              <div className="space-y-1">
+                <label className="block text-sm font-medium text-gray-700">
+                  Gender<span className="text-red-500 ml-1">*</span>
+                </label>
                 <div className="space-x-4">
                   {['Male', 'Female', 'Other'].map((gender) => (
                     <label key={gender} className="inline-flex items-center">
@@ -299,6 +343,7 @@ const App = () => {
                         value={gender.toLowerCase()}
                         checked={formData.gender === gender.toLowerCase()}
                         onChange={handleInputChange}
+                        onBlur={() => handleBlur('gender')}
                         className="mr-2"
                         required
                       />
@@ -306,71 +351,80 @@ const App = () => {
                     </label>
                   ))}
                 </div>
+                {touched.gender && errors.gender && (
+                  <p className="text-red-500 text-sm mt-1">{errors.gender}</p>
+                )}
               </div>
             </div>
           )}
 
           {currentScreen === 2 && (
             <div className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium mb-1">College/School Name</label>
-                <input
-                  type="text"
-                  name="college"
-                  value={formData.college}
-                  onChange={handleInputChange}
-                  className="w-full p-2 border rounded focus:ring-2 focus:ring-blue-500"
-                  required
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium mb-1">Passing Year</label>
-                <select
-                  name="passingYear"
-                  value={formData.passingYear}
-                  onChange={handleInputChange}
-                  className="w-full p-2 border rounded focus:ring-2 focus:ring-blue-500"
-                  required
-                >
-                  <option value="">Select Year</option>
-                  {years.map(year => (
-                    <option key={year} value={year}>{year}</option>
-                  ))}
-                </select>
-              </div>
-              <div>
-                <label className="block text-sm font-medium mb-1">College City</label>
-                <select
-                  name="collegeCity"
-                  value={formData.collegeCity}
-                  onChange={handleInputChange}
-                  className="w-full p-2 border rounded focus:ring-2 focus:ring-blue-500"
-                  required
-                >
-                  <option value="">Select City</option>
-                  {cities.map(city => (
-                    <option key={city} value={city}>{city}</option>
-                  ))}
-                </select>
-              </div>
+              <FormField
+                label="College/School Name"
+                name="college"
+                value={formData.college}
+                onChange={handleInputChange}
+                onBlur={handleBlur}
+                error={errors.college}
+                touched={touched.college}
+                required
+                placeholder="Enter your college name"
+              />
+              <FormField
+                label="Passing Year"
+                name="passingYear"
+                type="select"
+                value={formData.passingYear}
+                onChange={handleInputChange}
+                onBlur={handleBlur}
+                error={errors.passingYear}
+                touched={touched.passingYear}
+                required
+              >
+                <option value="">Select Year</option>
+                {years.map(year => (
+                  <option key={year} value={year}>{year}</option>
+                ))}
+              </FormField>
+              <FormField
+                label="College City"
+                name="collegeCity"
+                type="select"
+                value={formData.collegeCity}
+                onChange={handleInputChange}
+                onBlur={handleBlur}
+                error={errors.collegeCity}
+                touched={touched.collegeCity}
+                required
+              >
+                <option value="">Select City</option>
+                {cities.map(city => (
+                  <option key={city} value={city}>{city}</option>
+                ))}
+              </FormField>
             </div>
           )}
 
           {currentScreen === 3 && (
             <div className="space-y-4">
+              <FormField
+                label="Bio"
+                name="bio"
+                type="textarea"
+                value={formData.bio}
+                onChange={handleInputChange}
+                onBlur={handleBlur}
+                error={errors.bio}
+                touched={touched.bio}
+                required
+                rows={4}
+                placeholder="Tell us about yourself (minimum 50 characters)"
+              />
               <div>
-                <label className="block text-sm font-medium mb-1">Bio</label>
-                <textarea
-                  name="bio"
-                  value={formData.bio}
-                  onChange={handleInputChange}
-                  className="w-full p-2 border rounded focus:ring-2 focus:ring-blue-500"
-                  rows={4}
-                  required
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium mb-1">Skills (Optional)</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Skills (Optional)
+                </label>
                 <select
                   onChange={(e) => handleSkillSelect(e.target.value)}
                   className="w-full p-2 border rounded focus:ring-2 focus:ring-blue-500"
